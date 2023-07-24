@@ -331,17 +331,17 @@
     </property>
     <item>
      <property name="text">
-      <string>user1</string>
+      <string>1</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>user2</string>
+      <string>2</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>user3</string>
+      <string>3</string>
      </property>
     </item>
    </widget>
@@ -443,7 +443,7 @@
       <rect>
        <x>5</x>
        <y>261</y>
-       <width>152</width>
+       <width>173</width>
        <height>50</height>
       </rect>
      </property>

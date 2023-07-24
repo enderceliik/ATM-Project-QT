@@ -102,7 +102,7 @@ void MainWindow::on_pushButton_exit_clicked()
 
 void MainWindow::on_pushButton_ok_clicked()
 {
-    if(sendDataMap.value("name").toString().isEmpty() || sendDataMap.value("name").toString().isEmpty())
+    if(sendDataMap.value("name").toString().isEmpty() || ui->lineEdit->text().length() < 4)
     {
         return;
     }
@@ -131,8 +131,9 @@ void MainWindow::controlPassword()
     if(sendDataMap.value("response").toString() == "true")
     {
         ui->label_nameSurname->setText(sendDataMap.value("name").toString() + " " + sendDataMap.value("surname").toString());
-        ui->label_balance->setText(QString::number(sendDataMap.value("balance").toDouble()) + " $");
+        ui->label_balance->setText(sendDataMap.value("balance").toString() + " ₺");
         ui->label_iban->setText(sendDataMap.value("Iban").toString());
+
         ui->groupBox->hide();
         ui->groupBox_2->show();
     }
@@ -148,17 +149,16 @@ void MainWindow::controlPassword()
         msgBox.exec();
     }
     delete tcpCommunicationObj;
-
 }
 
 void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
 {
     lockInterface(false);
-    getUserName(arg1);
+    getUserName(arg1.toInt());
     lockInterface(true);
 }
 
-void MainWindow::getUserName(QString userID)
+void MainWindow::getUserName(int userID)
 {
     if(ui->comboBox->currentIndex() == -1)
     {
@@ -166,7 +166,7 @@ void MainWindow::getUserName(QString userID)
     }
     TcpCommunication* tcpCommunicationObj = new TcpCommunication();
     sendDataMap.insert("process", "getUsername");
-    sendDataMap.insert("userID", QVariant(userID[4]));
+    sendDataMap.insert("userID", userID);
     sendDataMap = tcpCommunicationObj->interface(sendDataMap);
     if(sendDataMap.value("response").toString() == "true")
     {
@@ -209,7 +209,6 @@ void MainWindow::on_pushButton_exit_2_clicked()
 {
     sendDataMap.clear();
     ui->lineEdit->clear();
-    ui->lineEdit_2->clear();
     ui->comboBox->setCurrentIndex(-1);
     ui->comboBox->setEnabled(true);
     ui->label->setText("");
@@ -224,11 +223,15 @@ void MainWindow::on_pushButton_cancel_2_clicked()
     ui->groupBox_2->show();
 }
 
-void MainWindow::on_pushButton_withdrawal_clicked() // Para cekme
+void MainWindow::on_pushButton_withdrawal_clicked()
 {
+    sendDataMap.insert("process", "infoFetch");
+    TcpCommunication* tcpCommunication = new TcpCommunication();
+    sendDataMap = tcpCommunication->interface(sendDataMap);
     currentPage = "withDrawalPage";
     ui->label_6->setText("Please select the \n amount you wish to\nwithdraw or enter it\nusing the keypad");
-    ui->label_balance_2->setText(QString::number(sendDataMap.value("balance").toDouble()) + " $");
+    ui->label_balance_2->setText(sendDataMap.value("balance").toString() + " ₺");
+    ui->label_iban_2->setText(sendDataMap.value("Iban").toString());
     ui->lineEdit_2->clear();
     ui->groupBox_2->hide();
     ui->groupBox_3->show();
@@ -236,10 +239,14 @@ void MainWindow::on_pushButton_withdrawal_clicked() // Para cekme
 
 void MainWindow::on_pushButton_deposit_clicked()
 {
+    sendDataMap.insert("process", "infoFetch");
+    TcpCommunication* tcpCommunication = new TcpCommunication();
+    sendDataMap = tcpCommunication->interface(sendDataMap);
     currentPage = "depositPage";
     ui->label_6->setText("Please select the\namount you wish\nto deposit or enter it\nusing the keypad.");
+    ui->label_iban_2->setText(sendDataMap.value("Iban").toString());
+    ui->label_balance_2->setText(sendDataMap.value("balance").toString() + " ₺");
     ui->lineEdit_2->clear();
-    ui->label_balance->show();
     ui->groupBox_2->hide();
     ui->groupBox_3->show();
 }
@@ -247,8 +254,6 @@ void MainWindow::on_pushButton_deposit_clicked()
 void MainWindow::on_pushButton_transfer_clicked()
 {
     currentPage = "moneyTransferPage";
-//    ui->label_6->setText("Please select the\namount you wish\nto send or enter it\nusing the keypad.");
-//    ui->label_balance->show();
     ui->lineEdit_3->clear();
     ui->groupBox_2->hide();
     ui->groupBox_4->show();
@@ -261,10 +266,7 @@ void MainWindow::on_pushButton_cancel_3_clicked()
     ui->groupBox_2->show();
 }
 
-void MainWindow::on_pushButton_ok_3_clicked()
-{
-    // IBAN CONTROL PROCESS
-}
+
 
 void MainWindow::on_pushButton_10_clicked()
 {
@@ -291,31 +293,77 @@ void MainWindow::on_pushButton_200_clicked()
     ui->lineEdit_2->setText("200");
 }
 
-void MainWindow::on_pushButton_ok_2_clicked()
+
+void MainWindow::on_pushButton_ok_3_clicked()
 {
-    if(currentPage == "withDrawalPage")
+    qDebug() << sendDataMap.value("Iban");
+    qDebug() << ui->lineEdit_3->text();
+    if(ui->lineEdit_3->text().isEmpty() || sendDataMap.value("Iban").toString() == "TR "+ui->lineEdit_3->text()) return;
+    ui->lineEdit_3->setEnabled(false);
+    ui->pushButton_ok_3->setEnabled(false);
+    TcpCommunication* tcpCommunicationObj = new TcpCommunication();
+    sendDataMap.insert("process", "ibanControl");
+    sendDataMap.insert("receiverIban", "TR " + ui->lineEdit_3->text());
+    sendDataMap = tcpCommunicationObj->interface(sendDataMap);
+    if(sendDataMap.value("response").toString() == "true")
     {
-        if(ui->lineEdit_2->text().toDouble() > sendDataMap.value("balance").toDouble() || ui->lineEdit->text().toDouble() < 0)
-        {
-            return;
-        }
-        // tcp class call
+        currentPage = "moneyTransferPage";
+        ui->label_6->setText("Please select the\namount you wish\nto send or enter it\nusing the keypad.");
+        ui->label_balance_2->setText(sendDataMap.value("balance").toString() + " ₺");
+        ui->label_iban_2->setText(sendDataMap.value("name").toString()+ " " + sendDataMap.value("surname").toString());
+        ui->lineEdit_2->clear();
+        ui->groupBox_4->hide();
+        ui->groupBox_3->show();
     }
-    else if(currentPage == "depositPage")
+    else if (sendDataMap.value("response").toString() == "Data didn't send" || sendDataMap.value("response").toString() == "Data didn't get" || sendDataMap.value("response").toString() == "Client didn't connect to server")
     {
-        if(ui->lineEdit_2->text().toDouble() > sendDataMap.value("balance").toDouble() || ui->lineEdit->text().toDouble() < 0)
-        {
-            return;
-        }
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Warning");
+        QString errorMessage = QString("Your request could not be fulfilled: %1").arg(sendDataMap.value("response").toString());
+        msgBox.setText(errorMessage);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
     }
-    else if(currentPage == "moneyTransferPage")
-    {}
+    delete tcpCommunicationObj;
+    ui->lineEdit_3->setEnabled(true);
+    ui->pushButton_ok_3->setEnabled(true);
 }
 
-void MainWindow::moneyProcessFunc()
+void MainWindow::on_pushButton_ok_2_clicked()
 {
+    if(currentPage == "withDrawalPage" || currentPage == "moneyTransferPage")
+    {
+        if(ui->lineEdit_2->text().toInt() == 0 || ui->lineEdit_2->text().toInt() > sendDataMap.value("balance").toInt())
+        {
+            qDebug("Uygun degerler giriniz!");
+            return;
+        }
+    }
+
     TcpCommunication* tcpCommunicationObj = new TcpCommunication();
-    sendDataMap.insert("process", "withDrawalPage");
-    sendDataMap.insert("moneyAmount", ui->lineEdit_2->text().toDouble());
+    sendDataMap.insert("process", currentPage);
+    sendDataMap.insert("moneyAmount", ui->lineEdit_2->text().toInt());
     sendDataMap = tcpCommunicationObj->interface(sendDataMap);
+    if(sendDataMap.value("response").toString() == "true")
+    {
+        currentPage = "mainPage";
+        ui->label_balance->setText(sendDataMap.value("balance").toString() + " ₺");
+        ui->label_iban->setText(sendDataMap.value("Iban").toString());
+        ui->groupBox_3->hide();
+        ui->groupBox_2->show();
+    }
+    else if (sendDataMap.value("response").toString() == "Data didn't send" || sendDataMap.value("response").toString() == "Data didn't get" || sendDataMap.value("response").toString() == "Client didn't connect to server")
+    {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Warning");
+        QString errorMessage = QString("Your request could not be fulfilled: %1").arg(sendDataMap.value("response").toString());
+        msgBox.setText(errorMessage);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
+    }
 }
+

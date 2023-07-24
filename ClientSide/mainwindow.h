@@ -44,11 +44,10 @@ private slots:
     void on_pushButton_100_clicked();
     void on_pushButton_200_clicked();
     void on_pushButton_ok_2_clicked();
-    void moneyProcessFunc();
 
 private:
     Ui::MainWindow *ui;
-    void getUserName(QString userID);
+    void getUserName(int userID);
     void controlPassword();
     QMap<QString, QVariant> sendDataMap;
     void lockInterface(bool state);

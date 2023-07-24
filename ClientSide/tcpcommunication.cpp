@@ -60,20 +60,38 @@ QMap<QString, QVariant> TcpCommunication::interface(QMap<QString, QVariant> send
     QString process = sendDataMap.value("process").toString();
     if(process == "getUsername")
     {
-        regularData = QString("getUsername,'%1'").arg(sendDataMap.value("userID").toString());
+        regularData = QString("getUsername,%1").arg(sendDataMap.value("userID").toInt());
+
     }
     else if (process == "controlPassword")
     {
         regularData = QString("controlPassword,%1,%2")
-                .arg(sendDataMap.value("userID").toString())
+                .arg(sendDataMap.value("userID").toInt())
                 .arg(sendDataMap.value("password").toString());
+    }
+    else if (process == "ibanControl")
+    {
+        regularData = QString("ibanControl,%1")
+                .arg(sendDataMap.value("receiverIban").toString());
+    }
+    else if (process == "withDrawalPage" || process == "depositPage" || process == "moneyTransferPage")
+    {
+        regularData = QString("%1,%2,%3,%4,%5")
+                .arg(process)
+                .arg(sendDataMap.value("moneyAmount").toInt())
+                .arg(sendDataMap.value("Iban").toString())
+                .arg(sendDataMap.value("userID").toInt())
+                .arg(sendDataMap.value("receiverIban").toString());
+    }
+    else if (process == "infoFetch")
+    {
+        regularData = QString("infoFetcth,%1").arg(sendDataMap.value("userID").toInt());
     }
     QByteArray regularDataByteArray = regularData.toUtf8();
 
     regularDataByteArray = talkToServer(regularDataByteArray);
     if(regularDataByteArray == QByteArray("Data didn't send") || regularDataByteArray == QByteArray("Data didn't get") || regularDataByteArray == QByteArray("Client didn't connect to server"))
     {
-        qDebug() << "Error";
         sendDataMap.clear();
         sendDataMap.insert("response", QString(regularDataByteArray));
         return sendDataMap;
@@ -91,27 +109,37 @@ QMap<QString, QVariant> TcpCommunication::interface(QMap<QString, QVariant> send
     if(jsonDocument.isObject())
     {
         QJsonObject jsonObject = jsonDocument.object();
-        sendDataMap.clear();
         if(jsonObject.value("response").toString() == "true")
         {
+            sendDataMap.insert("response", "true");
             if(process == "getUsername")
             {
-                sendDataMap.insert("response", "true");
                 sendDataMap.insert("userID", jsonObject.value("userID").toInt());
                 sendDataMap.insert("name", jsonObject.value("name").toString());
                 sendDataMap.insert("surname", jsonObject.value("surname").toString());
             }
             else if (process == "controlPassword")
             {
-                qDebug() << "true";
-                sendDataMap.insert("response", "true");
                 sendDataMap.insert("userID", jsonObject.value("userID").toInt());
                 sendDataMap.insert("name", jsonObject.value("name").toString());
                 sendDataMap.insert("surname", jsonObject.value("surname").toString());
-                sendDataMap.insert("balance", jsonObject.value("balance").toDouble());
-                // qDebug() << sendDataMap.value("balance").toString();
+                sendDataMap.insert("balance", jsonObject.value("balance").toInt());
                 sendDataMap.insert("Iban", jsonObject.value("Iban").toString());
                 sendDataMap.insert("userType", jsonObject.value("userType").toInt());
+            }
+            else if (process == "depositPage" || process == "withDrawalPage" || process == "moneyTransferPage")
+            {
+                sendDataMap.insert("userID", jsonObject.value("userID").toInt());
+                sendDataMap.insert("name", jsonObject.value("name").toString());
+                sendDataMap.insert("surname", jsonObject.value("surname").toString());
+                sendDataMap.insert("balance", jsonObject.value("balance").toInt());
+                sendDataMap.insert("Iban", jsonObject.value("Iban").toString());
+                sendDataMap.insert("userType", jsonObject.value("userType").toInt());
+            }
+            else if (process == "ibanControl")
+            {
+                sendDataMap.insert("name", jsonObject.value("name").toString());
+                sendDataMap.insert("surname", jsonObject.value("surname").toString());
             }
         }
         else
